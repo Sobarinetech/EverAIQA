@@ -6,6 +6,11 @@ from sklearn.ensemble import IsolationForest
 from io import StringIO
 import datetime
 import time
+import seaborn as sns
+from sklearn.preprocessing import StandardScaler
+from sklearn.decomposition import PCA
+from sklearn.impute import SimpleImputer
+import numpy as np
 
 # Configure Google API Key
 genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
@@ -61,6 +66,15 @@ if st.session_state["uploaded_data"]:
             st.success("Duplicates removed!")
             st.dataframe(data)
 
+        # Handling Missing Values
+        st.subheader("Handle Missing Values")
+        imputation_strategy = st.selectbox("Choose imputation strategy", ["Mean", "Median", "Most Frequent"])
+        if st.button("Impute Missing Values"):
+            imputer = SimpleImputer(strategy=imputation_strategy)
+            data = pd.DataFrame(imputer.fit_transform(data), columns=data.columns)
+            st.success(f"Missing values imputed using {imputation_strategy} strategy.")
+            st.dataframe(data)
+
         # QA Validation and Statistical Checks
         st.subheader("Run Advanced QA Validations")
         validation_query = st.text_input("Enter a validation query (e.g., 'Check for missing values in Column X'):")
@@ -97,7 +111,7 @@ if st.session_state["uploaded_data"]:
         # Visualization
         st.subheader("Visualization")
         chart_column = st.selectbox("Select a column to visualize:", data.columns)
-        chart_type = st.radio("Select chart type:", ["Histogram", "Line Chart", "Bar Chart"])
+        chart_type = st.radio("Select chart type:", ["Histogram", "Line Chart", "Bar Chart", "Box Plot", "Correlation Heatmap"])
 
         if st.button("Generate Chart"):
             try:
@@ -107,6 +121,11 @@ if st.session_state["uploaded_data"]:
                     data[chart_column].dropna().plot(kind="line")
                 elif chart_type == "Bar Chart":
                     data[chart_column].value_counts().plot(kind="bar")
+                elif chart_type == "Box Plot":
+                    sns.boxplot(x=data[chart_column].dropna())
+                elif chart_type == "Correlation Heatmap":
+                    corr = data.corr()
+                    sns.heatmap(corr, annot=True, cmap="coolwarm")
                 plt.title(f"{chart_type} of {chart_column}")
                 st.pyplot(plt)
                 plt.clf()
@@ -126,6 +145,59 @@ if st.session_state["uploaded_data"]:
                 st.write(ai_response.text)
             except Exception as e:
                 st.error(f"AI Error: {e}")
+
+        # Feature Scaling
+        st.subheader("Feature Scaling")
+        scale_option = st.selectbox("Select Scaling Method", ["Standard Scaling", "Min-Max Scaling", "Robust Scaling"])
+        if st.button("Scale Features"):
+            try:
+                scaler = None
+                if scale_option == "Standard Scaling":
+                    scaler = StandardScaler()
+                elif scale_option == "Min-Max Scaling":
+                    scaler = MinMaxScaler()
+                elif scale_option == "Robust Scaling":
+                    scaler = RobustScaler()
+
+                scaled_data = pd.DataFrame(scaler.fit_transform(data.select_dtypes(include=["float", "int"])), columns=data.select_dtypes(include=["float", "int"]).columns)
+                st.write(f"Scaled data using {scale_option} method:")
+                st.dataframe(scaled_data)
+            except Exception as e:
+                st.error(f"Error during feature scaling: {e}")
+
+        # PCA for Dimensionality Reduction
+        st.subheader("PCA for Dimensionality Reduction")
+        if st.button("Apply PCA"):
+            try:
+                pca = PCA(n_components=2)
+                pca_result = pca.fit_transform(data.select_dtypes(include=["float", "int"]))
+                st.write("PCA Components:")
+                st.dataframe(pd.DataFrame(pca_result, columns=["PC1", "PC2"]))
+                st.write(f"Explained Variance Ratio: {pca.explained_variance_ratio_}")
+            except Exception as e:
+                st.error(f"Error during PCA: {e}")
+
+        # Feature Engineering Options
+        st.subheader("Feature Engineering")
+        feature_columns = st.multiselect("Select columns to engineer features from", data.columns.tolist())
+        if st.button("Generate Features"):
+            try:
+                for col in feature_columns:
+                    data[f"{col}_log"] = np.log1p(data[col])  # Log transformation
+                    data[f"{col}_sqrt"] = np.sqrt(data[col])  # Square root transformation
+                st.write("New Features Added:")
+                st.dataframe(data.head())
+            except Exception as e:
+                st.error(f"Error during feature engineering: {e}")
+
+        # Correlation and Multi-collinearity
+        st.subheader("Correlation Analysis")
+        if st.button("Check Correlations"):
+            corr = data.corr()
+            st.write("Correlation Matrix:")
+            st.dataframe(corr)
+            if corr.abs().gt(0.8).any().any():
+                st.warning("Warning: High correlation detected between some variables.")
 
         # Scheduled Task Example
         st.subheader("Scheduled Validation")
