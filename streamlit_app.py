@@ -13,7 +13,8 @@ import numpy as np
 from sklearn.cluster import KMeans
 from sklearn.linear_model import LinearRegression
 import altair as alt
-import pandas_profiling
+from pandas_profiling import ProfileReport
+from streamlit_pandas_profiling import st_profile_report
 
 # Configure Google API Key
 genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
@@ -134,7 +135,7 @@ if st.session_state["uploaded_data"]:
                 elif chart_type == "Box Plot":
                     sns.boxplot(x=pd.to_numeric(data[chart_column], errors='coerce').dropna())
                 elif chart_type == "Correlation Heatmap":
-                    corr = data.corr()
+                    corr = data.select_dtypes(include=["float", "int"]).corr()
                     sns.heatmap(corr, annot=True, cmap="coolwarm")
                 elif chart_type == "Scatter Plot":
                     sns.scatterplot(data=data, x=data.index, y=chart_column)
@@ -357,7 +358,7 @@ if st.session_state["uploaded_data"]:
         st.subheader("Data Profiling")
         if st.button("Generate Data Profile"):
             try:
-                profile = pandas_profiling.ProfileReport(data)
+                profile = ProfileReport(data)
                 st_profile_report(profile)
             except Exception as e:
                 st.error(f"Error generating data profile: {e}")
