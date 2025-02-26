@@ -116,13 +116,13 @@ if st.session_state["uploaded_data"]:
             try:
                 plt.figure()
                 if chart_type == "Histogram":
-                    plt.hist(data[chart_column].dropna(), bins=10)
+                    plt.hist(pd.to_numeric(data[chart_column], errors='coerce').dropna(), bins=10)
                 elif chart_type == "Line Chart":
-                    data[chart_column].dropna().plot(kind="line")
+                    pd.to_numeric(data[chart_column], errors='coerce').dropna().plot(kind="line")
                 elif chart_type == "Bar Chart":
-                    data[chart_column].value_counts().plot(kind="bar")
+                    pd.to_numeric(data[chart_column], errors='coerce').dropna().value_counts().plot(kind="bar")
                 elif chart_type == "Box Plot":
-                    sns.boxplot(x=data[chart_column].dropna())
+                    sns.boxplot(x=pd.to_numeric(data[chart_column], errors='coerce').dropna())
                 elif chart_type == "Correlation Heatmap":
                     corr = data.corr()
                     sns.heatmap(corr, annot=True, cmap="coolwarm")
@@ -169,8 +169,9 @@ if st.session_state["uploaded_data"]:
         st.subheader("PCA for Dimensionality Reduction")
         if st.button("Apply PCA"):
             try:
+                numeric_data = data.select_dtypes(include=["float", "int"]).dropna()
                 pca = PCA(n_components=2)
-                pca_result = pca.fit_transform(data.select_dtypes(include=["float", "int"]))
+                pca_result = pca.fit_transform(numeric_data)
                 st.write("PCA Components:")
                 st.dataframe(pd.DataFrame(pca_result, columns=["PC1", "PC2"]))
                 st.write(f"Explained Variance Ratio: {pca.explained_variance_ratio_}")
@@ -183,8 +184,9 @@ if st.session_state["uploaded_data"]:
         if st.button("Generate Features"):
             try:
                 for col in feature_columns:
-                    data[f"{col}_log"] = np.log1p(data[col])  # Log transformation
-                    data[f"{col}_sqrt"] = np.sqrt(data[col])  # Square root transformation
+                    if np.issubdtype(data[col].dtype, np.number):
+                        data[f"{col}_log"] = np.log1p(data[col].replace([np.inf, -np.inf], np.nan).dropna())
+                        data[f"{col}_sqrt"] = np.sqrt(data[col].replace([np.inf, -np.inf], np.nan).dropna())
                 st.write("New Features Added:")
                 st.dataframe(data.head())
             except Exception as e:
@@ -193,11 +195,15 @@ if st.session_state["uploaded_data"]:
         # Correlation and Multi-collinearity
         st.subheader("Correlation Analysis")
         if st.button("Check Correlations"):
-            corr = data.corr()
-            st.write("Correlation Matrix:")
-            st.dataframe(corr)
-            if corr.abs().gt(0.8).any().any():
-                st.warning("Warning: High correlation detected between some variables.")
+            try:
+                numeric_data = data.select_dtypes(include=["float", "int"]).dropna()
+                corr = numeric_data.corr()
+                st.write("Correlation Matrix:")
+                st.dataframe(corr)
+                if corr.abs().gt(0.8).any().any():
+                    st.warning("Warning: High correlation detected between some variables.")
+            except Exception as e:
+                st.error(f"Error during correlation analysis: {e}")
 
         # Scheduled Task Example
         st.subheader("Scheduled Validation")
