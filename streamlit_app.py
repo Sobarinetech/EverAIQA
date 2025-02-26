@@ -13,6 +13,7 @@ import numpy as np
 from sklearn.cluster import KMeans
 from sklearn.linear_model import LinearRegression
 import altair as alt
+import pandas_profiling
 
 # Configure Google API Key
 genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
@@ -246,8 +247,8 @@ if st.session_state["uploaded_data"]:
 
         # 2. Linear Regression
         st.subheader("Linear Regression")
-        regression_target = st.selectbox("Select target column for regression:", data.columns)
-        regression_features = st.multiselect("Select feature columns for regression:", data.columns)
+        regression_target = st.selectbox("Select target column for regression:", data.select_dtypes(include=["float", "int"]).columns)
+        regression_features = st.multiselect("Select feature columns for regression:", data.select_dtypes(include=["float", "int"]).columns)
 
         if st.button("Run Regression"):
             try:
@@ -263,7 +264,7 @@ if st.session_state["uploaded_data"]:
 
         # 3. K-Means Clustering
         st.subheader("K-Means Clustering")
-        cluster_features = st.multiselect("Select features for clustering:", data.columns)
+        cluster_features = st.multiselect("Select features for clustering:", data.select_dtypes(include=["float", "int"]).columns)
         num_clusters = st.slider("Select number of clusters:", 2, 10, 3)
 
         if st.button("Run Clustering"):
@@ -278,7 +279,7 @@ if st.session_state["uploaded_data"]:
 
         # 4. Altair Visualization
         st.subheader("Altair Visualization")
-        altair_chart = st.selectbox("Select column for Altair chart:", data.columns)
+        altair_chart = st.selectbox("Select column for Altair chart:", data.select_dtypes(include=["float", "int"]).columns)
 
         if st.button("Generate Altair Chart"):
             try:
@@ -302,7 +303,7 @@ if st.session_state["uploaded_data"]:
 
         # 6. Data Distribution Plot
         st.subheader("Data Distribution Plot")
-        dist_plot_column = st.selectbox("Select column for distribution plot:", data.columns)
+        dist_plot_column = st.selectbox("Select column for distribution plot:", data.select_dtypes(include=["float", "int"]).columns)
 
         if st.button("Generate Distribution Plot"):
             try:
@@ -315,11 +316,12 @@ if st.session_state["uploaded_data"]:
 
         # 7. Time Series Analysis
         st.subheader("Time Series Analysis")
-        time_series_column = st.selectbox("Select column for time series analysis:", data.columns)
+        time_series_column = st.selectbox("Select column for time series analysis:", data.select_dtypes(include=["float", "int"]).columns)
         time_series_freq = st.selectbox("Select frequency for resampling:", ["D", "W", "M"])
 
         if st.button("Run Time Series Analysis"):
             try:
+                data.index = pd.to_datetime(data.index)
                 time_series_data = data[time_series_column].dropna()
                 resampled_data = time_series_data.resample(time_series_freq).mean()
                 st.write(f"### Resampled Time Series Data ({time_series_freq}):")
@@ -331,7 +333,7 @@ if st.session_state["uploaded_data"]:
         st.subheader("Data Correlation Heatmap")
         if st.button("Generate Correlation Heatmap"):
             try:
-                corr = data.corr()
+                corr = data.select_dtypes(include=["float", "int"]).corr()
                 sns.heatmap(corr, annot=True, cmap="coolwarm")
                 plt.title("Correlation Heatmap")
                 st.pyplot(plt)
@@ -341,7 +343,7 @@ if st.session_state["uploaded_data"]:
 
         # 9. Pairplot Visualization
         st.subheader("Pairplot Visualization")
-        pairplot_columns = st.multiselect("Select columns for pairplot:", data.columns)
+        pairplot_columns = st.multiselect("Select columns for pairplot:", data.select_dtypes(include=["float", "int"]).columns)
 
         if st.button("Generate Pairplot"):
             try:
@@ -355,7 +357,6 @@ if st.session_state["uploaded_data"]:
         st.subheader("Data Profiling")
         if st.button("Generate Data Profile"):
             try:
-                import pandas_profiling
                 profile = pandas_profiling.ProfileReport(data)
                 st_profile_report(profile)
             except Exception as e:
