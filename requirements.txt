@@ -1,8 +1,9 @@
 streamlit
 pandas
-google-generativeai
 matplotlib
+google-generativeai
 scikit-learn
-openpyxl
-requests
 seaborn
+numpy
+altair
+pandas-profiling
