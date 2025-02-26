@@ -69,10 +69,15 @@ if st.session_state["uploaded_data"]:
         st.subheader("Handle Missing Values")
         imputation_strategy = st.selectbox("Choose imputation strategy", ["Mean", "Median", "Most Frequent"])
         if st.button("Impute Missing Values"):
-            imputer = SimpleImputer(strategy=imputation_strategy.lower())
-            data = pd.DataFrame(imputer.fit_transform(data), columns=data.columns)
-            st.success(f"Missing values imputed using {imputation_strategy} strategy.")
-            st.dataframe(data)
+            try:
+                numeric_data = data.select_dtypes(include=["float", "int"])
+                imputer = SimpleImputer(strategy=imputation_strategy.lower())
+                imputed_data = pd.DataFrame(imputer.fit_transform(numeric_data), columns=numeric_data.columns)
+                data[numeric_data.columns] = imputed_data
+                st.success(f"Missing values imputed using {imputation_strategy} strategy.")
+                st.dataframe(data)
+            except Exception as e:
+                st.error(f"Error imputing missing values: {e}")
 
         # QA Validation and Statistical Checks
         st.subheader("Run Advanced QA Validations")
