@@ -10,6 +10,9 @@ from sklearn.preprocessing import StandardScaler, MinMaxScaler, RobustScaler
 from sklearn.decomposition import PCA
 from sklearn.impute import SimpleImputer
 import numpy as np
+from sklearn.cluster import KMeans
+from sklearn.linear_model import LinearRegression
+import altair as alt
 
 # Configure Google API Key
 genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
@@ -116,7 +119,7 @@ if st.session_state["uploaded_data"]:
         # Visualization
         st.subheader("Visualization")
         chart_column = st.selectbox("Select a column to visualize:", data.columns)
-        chart_type = st.radio("Select chart type:", ["Histogram", "Line Chart", "Bar Chart", "Box Plot", "Correlation Heatmap"])
+        chart_type = st.radio("Select chart type:", ["Histogram", "Line Chart", "Bar Chart", "Box Plot", "Correlation Heatmap", "Scatter Plot"])
 
         if st.button("Generate Chart"):
             try:
@@ -132,6 +135,8 @@ if st.session_state["uploaded_data"]:
                 elif chart_type == "Correlation Heatmap":
                     corr = data.corr()
                     sns.heatmap(corr, annot=True, cmap="coolwarm")
+                elif chart_type == "Scatter Plot":
+                    sns.scatterplot(data=data, x=data.index, y=chart_column)
                 plt.title(f"{chart_type} of {chart_column}")
                 st.pyplot(plt)
                 plt.clf()
@@ -227,3 +232,131 @@ if st.session_state["uploaded_data"]:
                 st.download_button(label="Download CSV", data=buffer.getvalue(), file_name="processed_data.csv", mime="text/csv")
             except Exception as e:
                 st.error(f"Error exporting file: {e}")
+
+        # New Features
+        # 1. Data Summary
+        st.subheader("Data Summary")
+        if st.button("Generate Summary"):
+            try:
+                summary = data.describe(include='all')
+                st.write("### Data Summary:")
+                st.dataframe(summary)
+            except Exception as e:
+                st.error(f"Error generating summary: {e}")
+
+        # 2. Linear Regression
+        st.subheader("Linear Regression")
+        regression_target = st.selectbox("Select target column for regression:", data.columns)
+        regression_features = st.multiselect("Select feature columns for regression:", data.columns)
+
+        if st.button("Run Regression"):
+            try:
+                X = data[regression_features].dropna()
+                y = data[regression_target].dropna()
+                model = LinearRegression()
+                model.fit(X, y)
+                st.write("### Regression Results:")
+                st.write(f"Coefficients: {model.coef_}")
+                st.write(f"Intercept: {model.intercept_}")
+            except Exception as e:
+                st.error(f"Error running regression: {e}")
+
+        # 3. K-Means Clustering
+        st.subheader("K-Means Clustering")
+        cluster_features = st.multiselect("Select features for clustering:", data.columns)
+        num_clusters = st.slider("Select number of clusters:", 2, 10, 3)
+
+        if st.button("Run Clustering"):
+            try:
+                X = data[cluster_features].dropna()
+                kmeans = KMeans(n_clusters=num_clusters, random_state=42)
+                data['Cluster'] = kmeans.fit_predict(X)
+                st.write("### Clustering Results:")
+                st.dataframe(data)
+            except Exception as e:
+                st.error(f"Error running clustering: {e}")
+
+        # 4. Altair Visualization
+        st.subheader("Altair Visualization")
+        altair_chart = st.selectbox("Select column for Altair chart:", data.columns)
+
+        if st.button("Generate Altair Chart"):
+            try:
+                chart = alt.Chart(data).mark_bar().encode(
+                    x=altair_chart,
+                    y='count()'
+                )
+                st.altair_chart(chart, use_container_width=True)
+            except Exception as e:
+                st.error(f"Error generating Altair chart: {e}")
+
+        # 5. Data Export to Excel
+        st.subheader("Export Data to Excel")
+        if st.button("Download Excel File"):
+            try:
+                buffer = StringIO()
+                data.to_excel(buffer, index=False)
+                st.download_button(label="Download Excel", data=buffer.getvalue(), file_name="processed_data.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+            except Exception as e:
+                st.error(f"Error exporting file: {e}")
+
+        # 6. Data Distribution Plot
+        st.subheader("Data Distribution Plot")
+        dist_plot_column = st.selectbox("Select column for distribution plot:", data.columns)
+
+        if st.button("Generate Distribution Plot"):
+            try:
+                sns.histplot(data[dist_plot_column].dropna(), kde=True)
+                plt.title(f"Distribution of {dist_plot_column}")
+                st.pyplot(plt)
+                plt.clf()
+            except Exception as e:
+                st.error(f"Error generating distribution plot: {e}")
+
+        # 7. Time Series Analysis
+        st.subheader("Time Series Analysis")
+        time_series_column = st.selectbox("Select column for time series analysis:", data.columns)
+        time_series_freq = st.selectbox("Select frequency for resampling:", ["D", "W", "M"])
+
+        if st.button("Run Time Series Analysis"):
+            try:
+                time_series_data = data[time_series_column].dropna()
+                resampled_data = time_series_data.resample(time_series_freq).mean()
+                st.write(f"### Resampled Time Series Data ({time_series_freq}):")
+                st.line_chart(resampled_data)
+            except Exception as e:
+                st.error(f"Error running time series analysis: {e}")
+
+        # 8. Data Correlation Heatmap
+        st.subheader("Data Correlation Heatmap")
+        if st.button("Generate Correlation Heatmap"):
+            try:
+                corr = data.corr()
+                sns.heatmap(corr, annot=True, cmap="coolwarm")
+                plt.title("Correlation Heatmap")
+                st.pyplot(plt)
+                plt.clf()
+            except Exception as e:
+                st.error(f"Error generating correlation heatmap: {e}")
+
+        # 9. Pairplot Visualization
+        st.subheader("Pairplot Visualization")
+        pairplot_columns = st.multiselect("Select columns for pairplot:", data.columns)
+
+        if st.button("Generate Pairplot"):
+            try:
+                sns.pairplot(data[pairplot_columns])
+                st.pyplot(plt)
+                plt.clf()
+            except Exception as e:
+                st.error(f"Error generating pairplot: {e}")
+
+        # 10. Data Profiling
+        st.subheader("Data Profiling")
+        if st.button("Generate Data Profile"):
+            try:
+                import pandas_profiling
+                profile = pandas_profiling.ProfileReport(data)
+                st_profile_report(profile)
+            except Exception as e:
+                st.error(f"Error generating data profile: {e}")
