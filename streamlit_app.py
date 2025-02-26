@@ -5,9 +5,8 @@ import google.generativeai as genai
 from sklearn.ensemble import IsolationForest
 from io import StringIO
 import datetime
-import time
 import seaborn as sns
-from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import StandardScaler, MinMaxScaler, RobustScaler
 from sklearn.decomposition import PCA
 from sklearn.impute import SimpleImputer
 import numpy as np
@@ -70,7 +69,7 @@ if st.session_state["uploaded_data"]:
         st.subheader("Handle Missing Values")
         imputation_strategy = st.selectbox("Choose imputation strategy", ["Mean", "Median", "Most Frequent"])
         if st.button("Impute Missing Values"):
-            imputer = SimpleImputer(strategy=imputation_strategy)
+            imputer = SimpleImputer(strategy=imputation_strategy.lower())
             data = pd.DataFrame(imputer.fit_transform(data), columns=data.columns)
             st.success(f"Missing values imputed using {imputation_strategy} strategy.")
             st.dataframe(data)
@@ -115,6 +114,7 @@ if st.session_state["uploaded_data"]:
 
         if st.button("Generate Chart"):
             try:
+                plt.figure()
                 if chart_type == "Histogram":
                     plt.hist(data[chart_column].dropna(), bins=10)
                 elif chart_type == "Line Chart":
