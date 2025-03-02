@@ -7,3 +7,4 @@ seaborn
 numpy
 altair
 pandas-profiling
+openpyxl
