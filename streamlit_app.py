@@ -21,6 +21,18 @@ genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
 st.title("AI-Powered QA, Validation & Analytics Tool")
 st.write("An all-in-one solution for advanced QA, validations, and dataset analytics using AI.")
 
+# Add custom CSS to hide the header and the top-right buttons
+hide_streamlit_style = """
+    <style>
+        .css-1r6p8d1 {display: none;} /* Hides the Streamlit logo in the top left */
+        .css-1v3t3fg {display: none;} /* Hides the star button */
+        .css-1r6p8d1 .st-ae {display: none;} /* Hides the Streamlit logo */
+        header {visibility: hidden;} /* Hides the header */
+        .css-1tqja98 {visibility: hidden;} /* Hides the header bar */
+    </style>
+"""
+st.markdown(hide_streamlit_style, unsafe_allow_html=True)
+
 # Sidebar: File Upload and Options
 st.sidebar.header("Upload Files")
 uploaded_files = st.sidebar.file_uploader("Upload your file(s)", type=["csv", "xlsx", "json"], accept_multiple_files=True)
